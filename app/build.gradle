@@ -168,6 +168,7 @@ configurations.all {
 
 def androidxVersion = "1.0.0"
 def workVersion = "1.0.0-alpha10"
+def lifecycleVersion = "2.0.0"
 
 dependencies {
     // Multi-dex
@@ -183,6 +184,8 @@ dependencies {
 
     // AndroidX support libraries
     implementation "androidx.appcompat:appcompat:$androidxVersion"
+    implementation "androidx.lifecycle:lifecycle-extensions:$lifecycleVersion"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion"
     implementation "com.google.android.material:material:$androidxVersion"
     implementation "androidx.cardview:cardview:$androidxVersion"
     implementation "androidx.preference:preference:$androidxVersion"
@@ -196,7 +199,6 @@ dependencies {
     implementation("android.arch.work:work-runtime-ktx:$workVersion", {
         exclude group: "com.google.guava", module: "listenablefuture"
     })
-
 
     // Dex2Jar & friends
     implementation "asm:asm-all:3.3.1"
@@ -256,7 +258,7 @@ dependencies {
     implementation("org.solovyev.android:checkout:1.2.1", {
         exclude group: "com.google.code.findbugs", module: "jsr305"
     })
-    implementation ("com.github.kobakei:MaterialFabSpeedDial:1.2.1", {
+    implementation("com.github.kobakei:MaterialFabSpeedDial:1.2.1", {
         exclude group: "com.google.android.material", module: "material"
     })
     implementation "com.daimajia.numberprogressbar:library:1.4@aar"
