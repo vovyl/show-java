@@ -16,40 +16,42 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.njlabs.showjava.activities.decompiler
+package com.njlabs.showjava.fragments.decompiler
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.animation.Animation
 import android.view.animation.LinearInterpolator
 import android.view.animation.RotateAnimation
 import android.widget.TextView
-import com.njlabs.showjava.R
-import com.njlabs.showjava.activities.BaseActivity
-import com.njlabs.showjava.data.PackageInfo
-import kotlinx.android.synthetic.main.activity_decompiler_process.*
-import android.content.IntentFilter
-import android.os.Build
-import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModel
 import androidx.work.State
 import androidx.work.WorkManager
 import androidx.work.WorkStatus
 import com.njlabs.showjava.BuildConfig
 import com.njlabs.showjava.Constants
+import com.njlabs.showjava.R
+import com.njlabs.showjava.activities.decompiler.LowMemoryActivity
 import com.njlabs.showjava.activities.explorer.navigator.NavigatorActivity
+import com.njlabs.showjava.data.PackageInfo
 import com.njlabs.showjava.data.SourceInfo
+import com.njlabs.showjava.fragments.BaseFragment
 import com.njlabs.showjava.utils.ktx.sourceDir
 import com.njlabs.showjava.workers.DecompilerWorker
+import kotlinx.android.synthetic.main.fragment_decompiler_process.*
 import timber.log.Timber
 
-
-class DecompilerProcessActivity : BaseActivity() {
+class DecompilerProcessFragment: BaseFragment<ViewModel>() {
+    override val layoutResource = R.layout.fragment_decompiler_process
 
     private val statusesMap = mutableMapOf(
         "jar-extraction" to State.ENQUEUED,
@@ -63,14 +65,13 @@ class DecompilerProcessActivity : BaseActivity() {
     private var ranOutOfMemory = false
 
     override fun init(savedInstanceState: Bundle?) {
-        setupLayout(R.layout.activity_decompiler_process)
-        packageInfo = intent.getParcelableExtra("packageInfo")
+        packageInfo = arguments!!.getParcelable("packageInfo") as PackageInfo
         showMemoryUsage = userPreferences.showMemoryUsage
 
         memoryUsage.visibility = if (showMemoryUsage) View.VISIBLE else View.GONE
         memoryStatus.visibility = if (showMemoryUsage) View.VISIBLE else View.GONE
 
-        val decompilerIndex = intent.getIntExtra("decompilerIndex", 0)
+        val decompilerIndex = arguments!!.getInt("decompilerIndex", 0)
 
         inputPackageLabel.text = packageInfo.label
 
@@ -83,11 +84,8 @@ class DecompilerProcessActivity : BaseActivity() {
 
         setupGears()
 
-        val statusIntentFilter = IntentFilter(Constants.WORKER.ACTION.BROADCAST + packageInfo.name)
-        registerReceiver(progressReceiver, statusIntentFilter)
-
         cancelButton.setOnClickListener {
-            DecompilerWorker.cancel(context, packageInfo.name)
+            DecompilerWorker.cancel(context!!, packageInfo.name)
             finish()
         }
 
@@ -187,12 +185,11 @@ class DecompilerProcessActivity : BaseActivity() {
     }
 
     private fun setupGears() {
-        leftProgressGear.post { leftProgressGear.animation = getGearAnimation(2, true) }
-        rightProgressGear.post { rightProgressGear.animation = getGearAnimation(1, false) }
+        leftProgressGear.animation = getGearAnimation(2, true)
+        rightProgressGear.animation = getGearAnimation(1, false)
     }
 
     private val progressReceiver = object : BroadcastReceiver() {
-
         @SuppressLint("SetTextI18n") // For memory status
         override fun onReceive(context: Context, intent: Intent) {
             val message = intent.getStringExtra(Constants.WORKER.STATUS_MESSAGE)
@@ -229,8 +226,16 @@ class DecompilerProcessActivity : BaseActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(progressReceiver)
+    override fun onResume() {
+        super.onResume()
+        val statusIntentFilter = IntentFilter(Constants.WORKER.ACTION.BROADCAST + packageInfo.name)
+        containerActivity.registerReceiver(progressReceiver, statusIntentFilter)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            containerActivity.unregisterReceiver(progressReceiver)
+        } catch (ignored: Exception) { }
     }
 }
